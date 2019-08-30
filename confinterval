@@ -1,0 +1,62 @@
+import math as m 
+import scipy.stats
+x=[110,120,130] #cтроки
+y=[16,32,48,64] #столбцы
+A=[
+[0,0,1,1],
+[0,1,3,0],
+[1,3,0,0]
+]         #матрица частот 
+def transpose(Yp): #транспонирование 
+  ni=len(Yp[0])-1
+  mi=len(Yp)-1
+  Ypp=list(range (ni+1)) #Ypp - транспонированная Yp
+  for ai in range (ni+1):
+    Ypp[ai]=list(range(mi+1))
+  h=0
+  while h<=ni:
+    ki=0
+    while ki<=mi:
+      Ypp[h][ki]=Yp[ki][h]
+      ki+=1
+    h+=1 #конец транспонирования
+  return Ypp
+
+n=0
+for k in A:
+  for element in k:
+    n+=element
+
+def ME(k,l,Matrix):# функция подсчета мат ожидания
+  summa=0
+  for i in range(0,len(l)):
+    sumrow=0
+    for j in Matrix[i]:
+      sumrow+=j
+    summa+=l[i]**k*sumrow
+  
+  return summa/n
+
+def dispersion(l,Matrix):
+  return ME(2,l,Matrix)-(ME(1,l,Matrix))**2
+
+def covariation(z,t,Matrix):
+  c=0
+  for i in range(0,len(z)):
+    for j in range(0,len(t)):
+      c+=z[i]*t[j]*A[i][j]
+  return c/n - (ME(1,z,Matrix)*ME(1,t,transpose(Matrix)))
+
+def coeffcor (z,t,Matrix): #коэффициент корреляции
+  return covariation(z,t,Matrix)/(m.sqrt(dispersion(z,Matrix))*m.sqrt(dispersion(t,transpose(Matrix))))
+
+def quant(alpha):#определяет значение квантиля нормального закона распределения
+  return scipy.stats.norm.ppf(alpha)
+
+exp1=m.exp(m.log((1+coeffcor(x,y,A))/(1-coeffcor(x,y,A)),m.exp(1))-(2*quant(0.975))/m.sqrt(n-3))
+exp2=m.exp(m.log((1+coeffcor(x,y,A))/(1-coeffcor(x,y,A)),m.exp(1))+(2*quant(0.975))/m.sqrt(n-3))
+p1=(exp1-1)/(exp1+1)
+p2=(exp2-1)/(exp2+1)
+
+print("Коэффициент корреляции:",coeffcor(x,y,A))
+print("Доверительный интервал:",[p1,p2])
