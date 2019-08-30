@@ -1,0 +1,128 @@
+import matplotlib as mpl                        
+mpl.use('Agg')    # не рисовать на экране
+import matplotlib.pyplot as plt
+import math as m 
+import scipy.stats
+import numpy as np
+from math import pi
+x=[110,120,130] #cтроки
+y=[16,32,48,64] #столбцы
+A=[
+[0,0,1,1],
+[0,1,3,0],
+[1,3,0,0]
+] #матрица частот
+
+def transpose(Yp): #транспонирование 
+  ni=len(Yp[0])-1
+  mi=len(Yp)-1
+  Ypp=list(range (ni+1)) #Ypp - транспонированная Yp
+  for ai in range (ni+1):
+    Ypp[ai]=list(range(mi+1))
+  h=0
+  while h<=ni:
+    ki=0
+    while ki<=mi:
+      Ypp[h][ki]=Yp[ki][h]
+      ki+=1
+    h+=1 #конец транспонирования
+  return Ypp
+
+n=0
+for k in A:
+  for element in k:
+    n+=element
+
+def ME(k,l,Matrix):# функция подсчета мат ожидания
+  summa=0
+  for i in range(0,len(l)):
+    sumrow=0
+    for j in Matrix[i]:
+      sumrow+=j
+    summa+=l[i]**k*sumrow
+  
+  return summa/n
+
+def D(l,Matrix):  #Дисперсия
+  return ME(2,l,Matrix)-(ME(1,l,Matrix))**2
+
+def covariation(z,t,Matrix):
+  c=0
+  for i in range(0,len(z)):
+    for j in range(0,len(t)):
+      c+=z[i]*t[j]*A[i][j]
+  return c/n - (ME(1,z,Matrix)*ME(1,t,transpose(Matrix)))
+
+def ccor (z,t,Matrix): #коэффициент корреляции
+  return covariation(z,t,Matrix)/(m.sqrt(D(z,Matrix))*m.sqrt(D(t,transpose(Matrix))))
+
+
+
+b1=ME(1,y,A)
+
+b2=(ccor(y,x,A)*m.sqrt(D(y,A)))/m.sqrt(D(x,transpose(A)))
+
+ss=(n/(n-2))*D(y,A)*(1-(ccor(y,x,A)**2)) # выражение для остаточной дисперсии 
+std=scipy.stats.t.ppf( 1-0.05, 8) #квантиль распределения Стьюдента
+
+ilb1=b1-std*m.sqrt(ss)/m.sqrt(n)  #левая граница 
+
+irb1=b1+(std*m.sqrt(ss)/m.sqrt(n)) #правая граница
+
+ilb2=b2-(std*m.sqrt(ss)/(m.sqrt(D(x,A))*m.sqrt(n)))
+
+irb2=b2+(std*m.sqrt(ss)/(m.sqrt(D(x,A))*m.sqrt(n)))
+print ("бета 1 =", b1)
+print ("бета 2 =", b2)
+print("Доверительный интервал для бета 1 :",[ilb1,irb1])
+print("Доверительный интервал для бета 2 :",[ilb2,irb2])
+#Доверительный интервал для y 
+mx=ME(1,x,transpose(A))
+dx=D(x,transpose(A))
+z=np.linspace(110,150,100)
+fmiddle=b1+b2*(z-mx)
+
+f1=fmiddle-(m.sqrt(ss)*std/m.sqrt(n))* np.sqrt(1 + ((z-mx)**2)/dx)
+f2=fmiddle+(m.sqrt(ss)*std/m.sqrt(n))*np.sqrt(1 + ((z-mx)**2)/dx)
+
+fig, ax = plt.subplots()                        # будет 1 график, на нем:
+
+ax.plot(z, fmiddle, color="red", label="y(x)")  #дов интервал ф-ии регрессии
+
+ax.plot(z, f1, color="blue", label="y(x)") 
+
+ax.plot(z, f2, color="blue", label="y(x)") 
+for i in range(0, len(x)):
+  for j in range (0, len(y)):
+    if A[j][i]!=0:
+      plt.scatter(x[i], y[j], color='orange')
+      plt.annotate(A[j][i], (x[i]+0.5, y[j]+0.5)) 
+
+ax.set_xlabel("x")                              # подпись у горизонтальной оси х
+
+ax.set_ylabel("y")                              # подпись у вертикальной оси y
+
+
+fig.savefig('1.png')   
+F_crit = scipy.stats.f.ppf(1 - 0.1, 2, n-2 )#квантиль Фишера
+
+figure, ax = plt.subplots() 
+
+a=np.sqrt(ss)*np.sqrt(2*F_crit/n)
+
+b=(np.sqrt(ss)/np.sqrt(D(x,transpose(A))))*(np.sqrt(2*F_crit/n))
+
+t = np.linspace(0, 2*pi, 100)
+
+plt.plot( b1+a*np.cos(t) , b2+b*np.sin(t) )
+
+plt.scatter(b1, b2, color='orange')
+
+plt.annotate((b1,round(b2,2)), (b1+0.05, b2+0.05)) 
+
+ax.set_xlabel("B1")                              # подпись у горизонтальной оси х
+
+ax.set_ylabel("B2")                              # подпись у вертикальной оси y
+
+figure.savefig('2.png')
+
